@@ -1,0 +1,208 @@
+HIBERNATE ORM ## NOTEBOOK
+==================================================
+EAGER ## LAZY ## Lazy Initialization Exception
+
+Hibernate’de iki nesneyi birbirine bağlamak için, iki yöntem kullanır. 
+Bunlardan birincisi EAGER diğeri ise LAZY dir. 
+Eğer EAGER kullanırsak nesneyi veritabanından çekerken EAGER olan tüm nesneleri de beraberinde çekeriz. 
+Fakat LAZY kullanırsak, ihtiyaç duyduğumuzda ilgili veriler çekilecektir.
+LAZY kullanımında bazı problemler olaşabilir. Bunlardan en yaygın olanı ise “lazy initialization exception” dır.
+
+==================================================
+
+jpql sorgulamada join olarak left, right, inner join kullanmadan iki tablonun ilişkisi arasında sorgulamada yapmak mümkündür.
+jpql nesne üzerinden gittigimiz için normal java gibi nesne üzerinden gidebiliriz sorgulama yapabiliriz.
+
+==================================================
+@Transient = javax.persistance.Transient annotasyon sayesinde Entity sınıfında bulunan bir field'in veritabanında sütun karşılığı olmayacağı anlamına gelmektedir. 
+Yani bu field persistent olmayacaktır. 
+
+@Enumareted = Javadaki enum sınıflarını tutar. value degeri olarak EnumType.ORDINAL sıra sayı degeri ile tutar. EnumType.STRING ise isim degeri ile tutar.
+
+@Temporal = Date karşılığı nasıl şekilde veri tabanına persist edecegini açıklama yapar.
+
+@BLOB = Büyük verileri tutmak için kullanılır. Binary Large Object
+
+@Index = Tablolarda hızlı  search yapmak için kullanırız. mysupplerId , mysuppler index isim veririz.
+@Table(name = "SUPPLIER", indexes = {
+		@Index (name = "mysupplerId", columnList = "supplierId"),
+		@Index (name = "mysuppler", columnList = "supplierName,totalCredit") // ilk once supplier_name gore index yapar supplier_name aynı olanlari supplier_total_credit gore indexleme yapar 
+})
+
+==================================================
+EMBED = Javadaki iki class'ın database tek bir database çizelgeye karşılık gelmesidir.
+@Embedded // gomulenCustomer. Class ın field property konulur.
+@Embeddable		// gomulebilir. Class ın uzerine konulur.
+@EmbeddedId   // aşagıdaki gibi sınıfın uzerine konuldugu zaman o sınıfın degerlerine primary key id tanımlar
+				@EmbeddedId
+				private ParticipantId participantId;
+==================================================
+KATMA DIKECLER # JOIN COLUMNS
+
+Relation ilişkili tablolarda ornegin @onetomany gibi olan tabloların joinColumns ile o ilişkili olan field alanlarıda yazılabilir.
+
+	@ManyToOne @JoinColumns({
+		@JoinColumn(name = "departmentId", referencedColumnName = "departmentId")
+		@JoinColumn(name = "departmentName", referencedColumnName = "departmentName")
+	})
+	private Department department;
+	
+burada relation ilişknin baglı oldugu tabloda department objenin içerindeki departmentId, departmentName degerleri yazacaktır.
+name = o tabloda hangi field alanı ile gorulmesi istenildigi
+referencedColumnName = ilişkili oldugu tablodan aldıgı map etmek istedigi alandır.
+
+==================================================
+INHERITANCE
+@MappedSuperclass = Kalıtım alınacagı sınıfın uzerine konulur.
+- Entityler, persistence durumunu ve mapping bilgilerini içeren ve Entity olmayan bir superclass’tan inherit olabilir. 
+- Bu superclass “@Entity” notasyonu ile tanımlanmaz ve Java Persistence Provider tarafından entity olarak belirlenmez. 
+- Bu classları genellikle ortak state ve mapping bilgisi olan entitylerimiz olduğunda kullanırız.
+Sonrasında entity olarak gelen o sınıfın uzerine yazılır.
+Not : Burada query sorgulamada ana super class ı uzerinden sorgu yapılamaz. Çünkü o bir entity degil MappedSuperclass dır.
+Not : Genelde oz sınıflar abstract sınıf olarak verilir. Direk kendi ismi ile çagrılmasın diye.
+==================================================
+@Inheritance(strategy = InheritanceType.SINGLE_TABLE)
+- Explicit bir şekilde başka bir strategy belirlemediğimiz sürece default olarak belirlenen strategydir. 
+- Hiyerarşide superclassı extend eden her class için sadece bir tane veritabanı tablosu oluşur.
+
+@DiscriminatorColumn(name = "PARENT_TYPE")
+- Entitylerin hepsini bir veritabanı tablosuna yazdığımız zaman Hibernate’in bir şekilde bunların hangi entityle ilişkilendireceğini bilmesi gerekir.
+- Bu bilgide default olarak entity attribute olmayan “discriminator column”da saklanır.
+- Bu column ya entitylerin superclass’ında “@DiscriminatorColumn” notasyonunu kullanarak tanımlanabilir ya da default olarak Hibernate DTYPE’ı kullanır.
+
+@DiscriminatorValue(value = "BROTHER")
+- Eğer Hibernate kullanıyorsanız “@DiscriminatorValue” notasyonunu kullanmak isteğe bağlıdır(optional). 
+- Eğer bu notasyonu kullanmazsanız Hibernate default ayırt edici özellik olarak entity name’i kullanır.
+
+@Inheritance(strategy = InheritanceType.JOINED)
+- Bu stratejiyi kullanırken, hiyerarşideki tanımladığımız her sınıf kendi tablosuna eşlenir(mapped). 
+- Yani superclass ve subclasslar ayrı ayrı tablolara kaydedilir ve superclasslarda belirlenen ortak fieldlar subclasslara kaydedilmez.
+- Ayrıca altsınıflarda üstsınıfların primary keyleri bulunur, bu durumda üstsınıfların primary keyleri aynı zamanda subclassların foreign keylerini temsil etmiş olur.
+
+@Inheritance(strategy = InheritanceType.TABLE_PER_CLASS)
+- Bu yöntem aslında MappedSuperclass yöntemiyle çok benzer. Temel fark ise artık superclass’ın da Entity olması. 
+- Bu yöntemde de hala concrete classların hepsinin kendilerine ait birer tablosu vardır. 
+- Bu eşleme(mapping) bize polymorphic sorguları ve superclass ile ilişkiler tanımlamamıza olanak sağlar. 
+- Fakat bu tablo yapısı polymorphic sorgulara çok fazla karmaşıklık getirir, dolayısıyla bunu kullanmaktan kaçınmalısınız.
+
+ *********************  Tüm bunlardan çıkarım yaparsak: ************************************
+Gerçekten ihtiyacınız yoksa bu yöntemleri kullanmayın. Gerçekten neye ihtiyacınız olduğunu biliyorsanız ve eminseniz, üzerinde durduğumuz bu başlıkları kısaca özetleyelim:
+
+ 1-   Single Table; polymorphic sorgulara ve ilişkilere ihtiyacımız varsa ve performansta bizim için önemliyse tercih etmemiz gereken strateji ancak dikkat etmemiz 
+					gereken konu veri bütünlüğü(!) Bu stratejiyi kullanırken constraintleri kullanamıyoruz.
+ 2-   Joined Table; eğer veri bütünlüğü bizim için performans, polymorphic sorgular ve ilişkilerden daha önemliyse seçmemiz gereken strateji olacaktır.
+ 3-   Table-Per-Class; Polymorphic sorgulara ve ilişkilere ihtiyacımız yoksa bizim için daha uygun olan strateji bu olacaktır. 
+						Ayrıca bize constraintler tanımlayabilmemiz sayesinde veri bütünlüğünü oluşturma olanağı sağlar. 
+						Ayrıca bu stratejide polymorphic sorgu ve ilişkiler sağlayabiliriz ancak unutmamamız gereken; 
+						bu sorgular kompleks tablo yapımızdan dolayı bizim için çok kullanışsız ve performanssızdır.
+						
+==================================================
+@PrePersist = entity eklemeden once metotu çalıştırmış oluruz. Yani loglama yapmış oluruz.
+	@PrePersist
+	public void prePersist() {
+		System.out.println("direme oncesi");
+	}
+
+@PostPersist = entity eklemeden sonra metotu çalıştırmış oluruz. Yani loglama yapmış oluruz.
+
+	@PostPersist
+	public void postPersist(Mother mother) {
+		System.out.println("direme sonrası :  " + mother);
+	}
+	
+@EntityListeners({HeritageListener.class}) = Burada HeritageListener.class sınıfı dinlenme yapılmış olur. oradaki metot ve classlar dinlenmiş olur.
+
+@MappedSuperclass @EntityListeners({HeritageListener.class})  // Burada hangi entity üzerinde dinleme ve loglama işlemi yapmış oluruz
+public class Mother {
+	
+	private String nameField;
+	
+	@PrePersist
+	public void prePersist() {
+		System.out.println("direme oncesi");
+	}
+}
+
+==================================================
+First Level Cache : Zula veri tabanından alınan nesnenin bir daha veri tabanına gitmeden bellekten geri getirilmesidir. Perfonması artırmak için.
+ilk sorgulama yaptıgında veri tabanından sorgulama yapıyor. sonrasında bellege atıyor ve bir dahakine artık bellekten sorgulama yapıyor. Buna zula yani First Level Cache deniliyor.
+
+Ancak bu bazen sıkıntı çıkartabiliyor veri tabanında kayıt degiştiginde bizim uygulamamızda başka bir birimden başka bir entity üzerinde degişiklik yaptıgında sorun çıkartabiliyor.
+Bunu sorunu aşmak için entityManager.refresh(xxxx) ile bellegi yani zula yı yenilememiz gerekiyor. 
+Sonrasında artık zuladan degilde veri tabanından getirilmiş olacak. 
+
+
+Second Level Cache : 
+1. olarak = persistance.xml dosyasına
+<shared-cache-mode>ALL</shared-cache-mode>   // ekleme yapılır.
+parametre olarak  = ALL, NONE, ENABLE_SELECTIVE, DISABLE_SELECTIVE şeklinde parametreler alır
+
+ALL = denilirse bütün sınıflar cache alınır.
+NONE = denilirse hiçbir sınıf cache alınmaz.
+ENABLE_SELECTIVE = hangi sınıfın üzerinde @Cacheable(value = true) yazan sınıfları cache alır. Diger bütün sınıfları cache almaz.
+-- OR ---
+@Entity
+@Cacheable(value = true)
+public class Frequent {}
+
+
+DISABLE_SELECTIVE = hangi sınıfın üzerinde @Cacheable(value = false) yazan sınıfları cache almaz. Diger bütün sınıfları cache alır. 
+-- OR ---
+@Entity
+@Cacheable(value = false)
+public class Frequent {}
+
+--- cache de olup olmadıgını kontrol eden kod ---
+		Cache cache = factory.getCache();
+		Frequent frequent = manager.find(Frequent.class, 1L);
+		System.out.println(frequent);
+		System.out.println("Zulada mı : " + cache.contains(Frequent.class, 1L));
+==================================================
+NAMED QUERY = class LARIN UZERİNDE TANIMLANAN QUERYDİR
+1- 
+@Entity
+@NamedQueries({
+	@NamedQuery(name = "Example.findAll", query = "select o from Example o"),
+	@NamedQuery(name = "Example.findDatabyId", query = "select o from Example o where o.dataValue = 20") })
+@Table(name = "Example")
+public class Example implements Serializable{
+
+	private static final long serialVersionUID = 1L;
+	
+	@Id
+	@GeneratedValue(strategy = GenerationType.AUTO)
+	private long dataId;
+	private String dataName;
+	private double dataValue; }
+	
+2- 
+			TypedQuery<Example> query=  manager.createNamedQuery("Example.findAll",Example.class);
+			List<Example> testDatas =   query.getResultList();
+			
+NATIVE QUERY = NORMAL SQL SORGUSUDUR
+1-
+
+			String query = "select * from Example";
+			
+			Query datas=  manager.createNativeQuery(query,Example.class);
+			List<Example> testDatas =   datas.getResultList();
+			
+			
+==================================================
+
+METAMODEL = Entity ler üzerinde bilgi almada kullanılır.
+
+==================================================
+
+CRITERIA QUERY = jPQL query lerde, named query lerde ve native querylerde scriptler String yazıldıgı için sorgu lar string yazıldıgı için bir eksik yanlış sorguda
+derleme anında hata vermiyor. çalışma anında hata veriyor bunun önüne geçmek için criteria query sınıfı geliştirişmiştir.
+
+Örnek => String jpql = "selecct data from TestData data";   // burada selecct yanlış yazılmış tır bunu derleme anında degil çalışma anında hatalı oldugu anlaşılır.
+
+CRITERIA QUERY lerde kütüphaneden faydalanarak .select, .from , .where felan diyerek derleme anında hataları görebiliriz
+
+==================================================
+
+
+
+
