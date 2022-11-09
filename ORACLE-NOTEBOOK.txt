@@ -455,7 +455,7 @@ DROP SEQUENCES SEQ_SIPARIS;
 SELECT * FROM USER_SEQUENCES;   // DB DEKI SEQUENCE GOSTERIR
 SELECT * FROM USER_TABLES;		// DB DEKI TABLES GOSTERIR
 SELECT * FROM USER_VIEWS;		// DB DEKI VIEWS GOSTERIR
-
+select * FROM USER_CONSTRAINTS  // DB DEKI CONSTRAINTS GOSTERIR
 =====================================================================
 #### VIEWS ####
 Views'ler mantıksal tablolardır. VeriTabanında yer işgal etmezler. Bir veya birden fazla Tablo ve/veya view üzerinden yeni viewler tanımlanabilir.
@@ -517,4 +517,7 @@ select ana.REF_KODU , ana.AD, alt.* from TTSYS_ALT_KATEGORI alt, TTSYS_ANA_KATEG
 =====================================================================
 iç içe sogulama şartı koyma
 select * from TTSYS_KANAL_BILDIRIM_TURU where KANAL_ID = (select id from TTSYS_KANAL WHERE ref_kodu = 'REF_KANAL_MOSS') and BILDIRIM_ALINAN_KANAL_ID = 6877;
+=====================================================================
+CONSTRAINT sorgulama
+select * FROM USER_CONSTRAINTS WHERE CONSTRAINT_NAME = 'FK8735352A61607451';
 =====================================================================
